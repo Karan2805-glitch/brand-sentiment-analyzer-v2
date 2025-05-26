@@ -5,7 +5,7 @@ import pandas as pd
 import io
 
 # Load the model and tokenizer
-model_path = "./model/saved_model"
+model_path = "Karan2805-glitch/brand-sentiment-bert"
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
