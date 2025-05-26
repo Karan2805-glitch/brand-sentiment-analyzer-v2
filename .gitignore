@@ -1,0 +1,4 @@
+model/results/
+*.pt
+*.safetensors
+env/
