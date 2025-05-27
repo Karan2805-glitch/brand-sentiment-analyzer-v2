@@ -3,15 +3,18 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import pandas as pd
 
-# 🌟 Streamlit Config
+# 🌟 Streamlit Page Config
 st.set_page_config(page_title="Sentiment Analyzer", page_icon="🧠", layout="centered")
 st.title("🧠 Sentiment Analyzer")
-st.markdown("Enter text or upload a CSV file to classify sentences as Positive or Negative.")
+st.markdown("Enter text or upload a CSV file to classify sentences as Positive, Negative, or Neutral.")
 
-# 🌟 Load Pre-Trained Sentiment Model from Hugging Face
-model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+# 🌟 Load Lightweight Sentiment Model from Hugging Face
+model_name = "cardiffnlp/twitter-roberta-base-sentiment"
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# 🌟 Mapping Model Labels
+labels = {0: "❌ Negative", 1: "😐 Neutral", 2: "✅ Positive"}
 
 # 🌟 Prediction Function
 def predict_sentiment(text):
@@ -22,11 +25,10 @@ def predict_sentiment(text):
         logits = outputs.logits
         probs = torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy()
         prediction = int(probs.argmax())
-        label = "✅ Positive" if prediction == 1 else "❌ Negative"
-    return label
+    return labels[prediction]
 
 # 🌟 Single Text Prediction
-st.subheader("🎯 Single Text Prediction")
+st.subheader("🎯 Single Text Sentiment Prediction")
 user_input = st.text_input("Enter a sentence:")
 if user_input:
     result = predict_sentiment(user_input)
@@ -48,4 +50,4 @@ if uploaded_file is not None:
         st.download_button("Download Results", csv, "analyzed_sentiment.csv", "text/csv")
 
 st.markdown("---")
-st.markdown("Made with ❤️ using DistilBERT, Streamlit, and Hugging Face.")
+st.markdown("Made with ❤️ using Roberta, Streamlit, and Hugging Face.")
