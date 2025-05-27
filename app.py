@@ -12,23 +12,21 @@ This app uses a **BERT model** fine-tuned on IMDB movie reviews to predict senti
 Upload your data or type in your own text to get started! 🚀
 """)
 
-# 🌟 Load Model and Tokenizer from Hugging Face Hub (safely)
-model_path = "Karan2805-glitch/brand-sentiment-bert"
-model = AutoModelForSequenceClassification.from_pretrained(model_path, trust_remote_code=True)
+# 🌟 Load Model and Tokenizer Locally
+model_path = "./model"
+model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-# 🌟 Prediction Function (NO .to() or .item() on meta tensors)
+# 🌟 Prediction Function
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
-
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
-        probs = torch.nn.functional.softmax(logits, dim=-1)
-        confidence = probs.max().detach().cpu().numpy().item()  # 🚫 No .item() on meta tensors
-        prediction = probs.argmax(dim=-1).detach().cpu().numpy().item()
-
+        probs = torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy()  # Convert to NumPy safely
+        confidence = probs.max()
+        prediction = probs.argmax()
     if confidence < 0.6:
         return "🤔 Uncertain", confidence
     else:
@@ -64,18 +62,16 @@ if uploaded_file is not None:
                 sentiment, confidence = predict_sentiment(str(text))
                 sentiments.append(sentiment)
                 confidences.append(round(confidence, 2))
-
         df['Sentiment'] = sentiments
         df['Confidence'] = confidences
         st.write("✅ Analysis Results", df)
-
         # 📈 Bar Chart
         sentiment_counts = df['Sentiment'].value_counts()
         st.bar_chart(sentiment_counts)
-
         # 💾 Download
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Download Analyzed Data", csv, "analyzed_sentiment.csv", "text/csv")
 
 st.markdown("---")
 st.markdown("Made with ❤️ using BERT, Streamlit, and Hugging Face by Karan2805-glitch.")
+# 🌟 Streamlit App for Brand Sentiment Analysis
