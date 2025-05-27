@@ -2,6 +2,7 @@ import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import pandas as pd
+import numpy as np
 
 # 🌟 Streamlit Page Config
 st.set_page_config(page_title="Brand Sentiment Analyzer", page_icon="🧠", layout="centered")
@@ -17,16 +18,16 @@ model_path = "./model"
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-# 🌟 Prediction Function
+# 🌟 Prediction Function (NO .item() at all)
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
-        probs = torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy()  # Convert to NumPy safely
-        confidence = probs.max()
-        prediction = probs.argmax()
+        probs = torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy()
+        confidence = float(np.max(probs))
+        prediction = int(np.argmax(probs))
     if confidence < 0.6:
         return "🤔 Uncertain", confidence
     else:
@@ -74,4 +75,3 @@ if uploaded_file is not None:
 
 st.markdown("---")
 st.markdown("Made with ❤️ using BERT, Streamlit, and Hugging Face by Karan2805-glitch.")
-# 🌟 Streamlit App for Brand Sentiment Analysis
