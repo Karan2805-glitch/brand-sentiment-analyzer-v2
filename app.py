@@ -2,23 +2,18 @@ import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import pandas as pd
-import numpy as np
 
-# 🌟 Streamlit Page Config
-st.set_page_config(page_title="Brand Sentiment Analyzer", page_icon="🧠", layout="centered")
-st.title("🧠 Brand Sentiment Analyzer")
-st.markdown("""
-Welcome to the **Brand Sentiment Analyzer**!  
-This app uses a **BERT model** fine-tuned on IMDB movie reviews to predict sentiment as **Positive**, **Negative**, or **Uncertain**.  
-Upload your data or type in your own text to get started! 🚀
-""")
+# 🌟 Streamlit Config
+st.set_page_config(page_title="Sentiment Analyzer", page_icon="🧠", layout="centered")
+st.title("🧠 Sentiment Analyzer")
+st.markdown("Enter text or upload a CSV file to classify sentences as Positive or Negative.")
 
-# 🌟 Load Model and Tokenizer Locally
-model_path = "./model"
-model = AutoModelForSequenceClassification.from_pretrained(model_path)
-tokenizer = AutoTokenizer.from_pretrained(model_path)
+# 🌟 Load Pre-Trained Sentiment Model from Hugging Face
+model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# 🌟 Prediction Function (NO .item() at all)
+# 🌟 Prediction Function
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
@@ -26,52 +21,31 @@ def predict_sentiment(text):
         outputs = model(**inputs)
         logits = outputs.logits
         probs = torch.nn.functional.softmax(logits, dim=-1).detach().cpu().numpy()
-        confidence = float(np.max(probs))
-        prediction = int(np.argmax(probs))
-    if confidence < 0.6:
-        return "🤔 Uncertain", confidence
-    else:
-        return ("✅ Positive" if prediction == 1 else "❌ Negative"), confidence
+        prediction = int(probs.argmax())
+        label = "✅ Positive" if prediction == 1 else "❌ Negative"
+    return label
 
 # 🌟 Single Text Prediction
-st.subheader("🎯 Single Text Sentiment Prediction")
-user_input = st.text_input("Enter text for sentiment prediction:")
-
+st.subheader("🎯 Single Text Prediction")
+user_input = st.text_input("Enter a sentence:")
 if user_input:
-    prediction, confidence = predict_sentiment(user_input)
-    st.success(f"Prediction: {prediction} (Confidence: {confidence:.2f})")
+    result = predict_sentiment(user_input)
+    st.success(f"Sentiment: {result}")
 
-# 🌟 Batch CSV Upload
-st.subheader("📂 Analyze a File (CSV Upload)")
-uploaded_file = st.file_uploader("Upload a CSV file with a 'text' column", type="csv")
-
+# 🌟 CSV Upload and Batch Prediction
+st.subheader("📂 Analyze a CSV File")
+uploaded_file = st.file_uploader("Upload a CSV with a 'text' column", type="csv")
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    st.write("📊 Sample Data", df.head())
-
     if 'text' not in df.columns:
-        st.error("❗ CSV must have a 'text' column!")
+        st.error("CSV must have a 'text' column.")
     else:
-        st.info("⏳ Running sentiment analysis...")
-        sentiments = []
-        confidences = []
-        for text in df['text']:
-            if pd.isnull(text):
-                sentiments.append("Unknown")
-                confidences.append(0)
-            else:
-                sentiment, confidence = predict_sentiment(str(text))
-                sentiments.append(sentiment)
-                confidences.append(round(confidence, 2))
-        df['Sentiment'] = sentiments
-        df['Confidence'] = confidences
-        st.write("✅ Analysis Results", df)
-        # 📈 Bar Chart
-        sentiment_counts = df['Sentiment'].value_counts()
-        st.bar_chart(sentiment_counts)
-        # 💾 Download
+        st.info("Running sentiment analysis...")
+        df['Sentiment'] = df['text'].apply(lambda x: predict_sentiment(str(x)))
+        st.write(df)
+        st.bar_chart(df['Sentiment'].value_counts())
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download Analyzed Data", csv, "analyzed_sentiment.csv", "text/csv")
+        st.download_button("Download Results", csv, "analyzed_sentiment.csv", "text/csv")
 
 st.markdown("---")
-st.markdown("Made with ❤️ using BERT, Streamlit, and Hugging Face by Karan2805-glitch.")
+st.markdown("Made with ❤️ using DistilBERT, Streamlit, and Hugging Face.")
