@@ -2,17 +2,16 @@ import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import pandas as pd
-import io
 
-# Load the model and tokenizer
+# Load the model and tokenizer ONCE
 model_path = "Karan2805-glitch/brand-sentiment-bert"
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
+# Get device (optional, only for inputs)
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model.to(device)
 
-# Function to predict sentiment
+# Sentiment prediction function
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
@@ -31,28 +30,13 @@ def predict_sentiment(text):
     else:
         return ("Positive" if prediction == 1 else "Negative"), confidence
 
-# Streamlit App UI
-st.title("Brand Sentiment Analyzer 🚀")
-st.markdown("""
-This app uses a **fine-tuned BERT model** to analyze the sentiment of text data (Positive, Negative, or Uncertain).
-You can either:
-- Enter a single text input, or
-- Upload a CSV file containing multiple texts for batch analysis.
-""")
+# Streamlit App
+st.title("Brand Sentiment Analyzer")
+user_input = st.text_input("Enter text for sentiment prediction:")
+if user_input:
+    prediction, confidence = predict_sentiment(user_input)
+    st.success(f"Prediction: {prediction} (Confidence: {confidence:.2f})")
 
-st.markdown("Enter a text below or upload a CSV file to get sentiment predictions.")
-
-# User input section (single text)
-user_input = st.text_area("Enter text here:")
-
-if st.button("Predict Sentiment"):
-    if user_input.strip() != "":
-        prediction, confidence = predict_sentiment(user_input)
-        st.success(f"Prediction: {prediction} (Confidence: {confidence:.2f})")
-    else:
-        st.warning("Please enter some text!")
-
-# CSV Upload Section
 st.subheader("Analyze a File (CSV Upload)")
 uploaded_file = st.file_uploader("Upload a CSV file with a 'text' column", type="csv")
 
@@ -65,29 +49,17 @@ if uploaded_file is not None:
     else:
         st.write("Running sentiment analysis on uploaded data...")
 
-        # Run predictions on each row
         sentiments = []
-        confidences = []
         for text in df['text']:
             if pd.isnull(text):
                 sentiments.append("Unknown")
-                confidences.append(0.0)
             else:
                 sentiment, confidence = predict_sentiment(str(text))
                 sentiments.append(sentiment)
-                confidences.append(confidence)
 
         df['Sentiment'] = sentiments
-        df['Confidence'] = [f"{c:.2f}" for c in confidences]
         st.write(df)
-        csv = df.to_csv(index=False)
-        st.download_button(
-            label="Download Predictions as CSV",
-            data=csv,
-            file_name='sentiment_predictions.csv',
-            mime='text/csv',
-            )
 
-        # Show bar chart
+        # Bar chart
         sentiment_counts = df['Sentiment'].value_counts()
         st.bar_chart(sentiment_counts)
