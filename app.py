@@ -9,12 +9,12 @@ model_path = "Karan2805-glitch/brand-sentiment-bert"
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
+
 # Function to predict sentiment
 def predict_sentiment(text):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
     model.eval()
-
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
     inputs = {k: v.to(device) for k, v in inputs.items()}
 
