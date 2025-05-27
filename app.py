@@ -12,25 +12,23 @@ This app uses a **BERT model** fine-tuned on IMDB movie reviews to predict senti
 Upload your data or type in your own text to get started! 🚀
 """)
 
-# 🌟 Load Model and Tokenizer from Hugging Face Hub (default to CPU)
+# 🌟 Load Model and Tokenizer from Hugging Face Hub (safely)
 model_path = "Karan2805-glitch/brand-sentiment-bert"
-model = AutoModelForSequenceClassification.from_pretrained(model_path)
+model = AutoModelForSequenceClassification.from_pretrained(model_path, trust_remote_code=True)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-# 🌟 Prediction Function
+# 🌟 Prediction Function (NO .to() or .item() on meta tensors)
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
-    inputs = {k: v.to("cpu") for k, v in inputs.items()}
-    
+
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
         probs = torch.nn.functional.softmax(logits, dim=-1)
-        confidence, prediction = torch.max(probs, dim=-1)
-        confidence = confidence.item()
-        prediction = prediction.item()
-    
+        confidence = probs.max().detach().cpu().numpy().item()  # 🚫 No .item() on meta tensors
+        prediction = probs.argmax(dim=-1).detach().cpu().numpy().item()
+
     if confidence < 0.6:
         return "🤔 Uncertain", confidence
     else:
