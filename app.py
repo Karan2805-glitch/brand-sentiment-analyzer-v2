@@ -3,7 +3,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import pandas as pd
 
-# 🚀 Load the model and tokenizer
+# 🌟 Streamlit Page Config
 st.set_page_config(page_title="Brand Sentiment Analyzer", page_icon="🧠", layout="centered")
 st.title("🧠 Brand Sentiment Analyzer")
 st.markdown("""
@@ -12,15 +12,17 @@ This app uses a **BERT model** fine-tuned on IMDB movie reviews to predict senti
 Upload your data or type in your own text to get started! 🚀
 """)
 
-# Load model from Hugging Face Hub
+# 🌟 Load Model and Tokenizer from Hugging Face Hub (default to CPU)
 model_path = "Karan2805-glitch/brand-sentiment-bert"
-model = AutoModelForSequenceClassification.from_pretrained(model_path, device_map="cpu")
+model = AutoModelForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-# Prediction function
+# 🌟 Prediction Function
 def predict_sentiment(text):
     model.eval()
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+    inputs = {k: v.to("cpu") for k, v in inputs.items()}
+    
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
@@ -28,6 +30,7 @@ def predict_sentiment(text):
         confidence, prediction = torch.max(probs, dim=-1)
         confidence = confidence.item()
         prediction = prediction.item()
+    
     if confidence < 0.6:
         return "🤔 Uncertain", confidence
     else:
@@ -41,7 +44,7 @@ if user_input:
     prediction, confidence = predict_sentiment(user_input)
     st.success(f"Prediction: {prediction} (Confidence: {confidence:.2f})")
 
-# 📂 Batch CSV Upload
+# 🌟 Batch CSV Upload
 st.subheader("📂 Analyze a File (CSV Upload)")
 uploaded_file = st.file_uploader("Upload a CSV file with a 'text' column", type="csv")
 
